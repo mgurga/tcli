@@ -38,6 +38,20 @@ fn main() -> Result<(), reqwest::Error> {
                 .long("set-volume")
                 .allow_hyphen_values(true),
         )
+        .arg(
+            Arg::new("status")
+                .about("Prints current player status in customizable format
+    %A = Album
+    %T = Track Name
+    %N = Track Number
+    %R = Artist
+    %P = Song Progress (in seconds)
+    %D = Song Duration (in seconds)\n")
+                .takes_value(true)
+                .long("status")
+                .default_value("%R - %A - %T")
+                .allow_hyphen_values(true),
+        )
         .get_matches();
 
     if matches.is_present("play-pause") {
@@ -175,6 +189,23 @@ fn main() -> Result<(), reqwest::Error> {
             println!("setting volume...");
             std::process::exit(0);
         }
+    }
+
+    if matches.is_present("status") {
+        let resp = reqwest::blocking::Client::new()
+            .get(format!("{}/status", matches.value_of("url").unwrap()))
+            .send()?
+            .text();
+        let respjson = json::parse(&resp.unwrap()).unwrap();
+        let mut out = String::from(matches.value_of("status").unwrap());
+        out = out.replace("%A", respjson["album"].as_str().unwrap_or(""));
+        out = out.replace("%T", respjson["title"].as_str().unwrap_or(""));
+        out = out.replace("%N", respjson["track"]["track_number"].as_str().unwrap_or(""));
+        out = out.replace("%R", respjson["artist"].as_str().unwrap_or(""));
+        out = out.replace("%P", &respjson["progress"].as_u32().unwrap_or(0).to_string());
+        out = out.replace("%D", &respjson["track"]["duration"].as_u32().unwrap_or(0).to_string());
+        println!("{}", out);
+        std::process::exit(0);
     }
 
     println!("something failed");
