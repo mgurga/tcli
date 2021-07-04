@@ -8,6 +8,7 @@ fn main() -> Result<(), reqwest::Error> {
         .arg(
             Arg::new("url")
                 .about("api url")
+                .long("url")
                 .takes_value(true)
                 .default_value("http://localhost:7814/api1"),
         )
